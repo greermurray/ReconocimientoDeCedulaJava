@@ -1,0 +1,191 @@
+package com.rodelag.tecnologia.cedulapruebajava;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
+import androidx.camera.core.Preview;
+import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.view.PreviewView;
+import androidx.core.content.ContextCompat;
+import android.content.Context;
+import android.net.Uri;
+import android.os.Bundle;
+import android.util.Log;
+import com.google.common.util.concurrent.ListenableFuture;
+import android.widget.Toast;
+import org.jetbrains.annotations.NotNull;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+import android.widget.Button;
+
+public class MainActivity extends AppCompatActivity implements AnalizadorDeReconocimientoDeTexto.CallbackDeReconocimientoDeTexto {
+
+    private ImageCapture capturaDeImagen = null;
+    private PreviewView vistaCamara;
+    private ImageAnalysis analizarImagen;
+
+    private Button btnDetectar;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        vistaCamara = findViewById(R.id.camara);
+
+        btnDetectar = findViewById(R.id.btnFacturar);
+
+        comenzarConLaCamara();
+    }
+
+    private void comenzarConLaCamara() {
+        ListenableFuture<ProcessCameraProvider> cameraProviderFuture = ProcessCameraProvider.getInstance(this);
+
+        cameraProviderFuture.addListener(() -> {
+            try {
+                ProcessCameraProvider proveedorCamara = cameraProviderFuture.get();
+                bindPreview(proveedorCamara);
+            } catch (ExecutionException | InterruptedException e) {
+                Log.e("Cámara", "Error al vincular la cámara", e);
+            }
+        }, ContextCompat.getMainExecutor(this));
+    }
+
+    private void bindPreview(ProcessCameraProvider cameraProvider) {
+        analizarImagen = new ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build();
+
+        capturaDeImagen = new ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .build();
+
+        //INFO: Aquí se puede cambiar la cédula que se desea detectar.
+        AnalizadorDeReconocimientoDeTexto analizador = new AnalizadorDeReconocimientoDeTexto("8-800-682", this);
+        analizarImagen.setAnalyzer(ContextCompat.getMainExecutor(this), analizador);
+
+        Preview vistaPrevia = new Preview.Builder().build();
+        vistaPrevia.setSurfaceProvider(vistaCamara.getSurfaceProvider());
+
+        cameraProvider.unbindAll();
+        cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, vistaPrevia, analizarImagen, capturaDeImagen);
+    }
+
+    public void enviarImagen(Context contextoLocal, Uri fotoUri) {
+        OkHttpClient client = new OkHttpClient();
+
+        try {
+            //INFO: Obtener el InputStream del Uri
+            InputStream inputStream = contextoLocal.getContentResolver().openInputStream(fotoUri);
+            assert inputStream != null;
+            byte[] bytes = new byte[inputStream.available()];
+            inputStream.read(bytes);
+
+            //INFO: Crear un RequestBody a partir de los bytes del archivo
+            RequestBody imagen = RequestBody.create(bytes, MediaType.parse("image/png"));
+
+            //INFO: Obtener el nombre del archivo
+            String nombreImagen = new File(Objects.requireNonNull(fotoUri.getPath())).getName();
+
+            //INFO: Verificar si el archivo de la imagen existe
+            if (!new File(fotoUri.getPath()).exists()) {
+                return;
+            }
+
+            //INFO: Crear un cuerpo de solicitud de varias partes
+            MultipartBody requestBody = new MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("imagenes[]", nombreImagen, imagen)
+                    .addFormDataPart("productoElconix", "false")
+                    .addFormDataPart("carpetaAmazonS3", "cedulasfacturacion")
+                    .addFormDataPart("bucketAmazonS3", "rodelag-imagenes")
+                    .build();
+
+            //INFO: Crear una solicitud POST
+            Request solicitud = new Request.Builder()
+                    .url("https://dev.rodelag.com/amazonS3/")
+                    .post(requestBody)
+                    .addHeader("Authorization", "Bearer TOKEN_DE_AUTORIZACION")
+                    .build();
+
+            client.newCall(solicitud).enqueue(new Callback() {
+                @Override
+                public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                    e.printStackTrace();
+                }
+
+                @Override
+                public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                    if (!response.isSuccessful()) throw new IOException("Error inesperado: " + response);
+                    Log.e("RODELAG", response.body() != null ? response.body().string() : null);
+                }
+            });
+
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onPointerCaptureChanged(boolean hasCapture) {
+        super.onPointerCaptureChanged(hasCapture);
+    }
+
+    @Override
+    public void alDetectarTexto(String texto) {
+        //INFO: Tomar la foto y enviarla al servidor
+        tomarFotoYEnviarAlServidor();
+        runOnUiThread(() -> {
+            Toast.makeText(MainActivity.this, "cédula detectada: " + texto, Toast.LENGTH_LONG).show();
+            //INFO: Habilitar el botón
+            btnDetectar.setEnabled(true);
+        });
+    }
+
+    private void tomarFotoYEnviarAlServidor() {
+        //INFO: Crear el archivo donde se guardará la foto
+        //INFO: Ponerle como nombre el ID de la cotización.
+        File fotoOutputFile = new File(getExternalFilesDir(null), "ID_COTIZACION.jpg");
+        ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(fotoOutputFile).build();
+
+        //INFO: Tomar la foto
+        capturaDeImagen.takePicture(outputFileOptions, ContextCompat.getMainExecutor(this), new ImageCapture.OnImageSavedCallback() {
+            @Override
+            public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
+                //INFO: Enviar la imagen al servidor
+                Uri imageUri = Uri.fromFile(fotoOutputFile);
+                enviarImagen(MainActivity.this, imageUri);
+
+                ProcessCameraProvider proveedorCamara = null;
+                try {
+                    proveedorCamara = ProcessCameraProvider.getInstance(MainActivity.this).get();
+                } catch (ExecutionException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
+                //INFO: Esto aquí hay que mejorarlo...
+                proveedorCamara.unbindAll();
+            }
+
+            @Override
+            public void onError(@NonNull ImageCaptureException exception) {
+                Log.e("RODELAG", "Error al tomar la foto", exception);
+            }
+        });
+    }
+}
