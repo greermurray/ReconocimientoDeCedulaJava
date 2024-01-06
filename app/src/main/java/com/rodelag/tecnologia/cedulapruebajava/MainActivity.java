@@ -11,12 +11,17 @@ import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import com.google.common.util.concurrent.ListenableFuture;
 import android.widget.Toast;
 import org.jetbrains.annotations.NotNull;
+import android.media.ExifInterface;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -76,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                 .build();
 
         //INFO: Aquí se puede cambiar la cédula que se desea detectar.
-        AnalizadorDeReconocimientoDeTexto analizador = new AnalizadorDeReconocimientoDeTexto("8-800-682", this);
+        AnalizadorDeReconocimientoDeTexto analizador = new AnalizadorDeReconocimientoDeTexto("0-000-000", this);
         analizarImagen.setAnalyzer(ContextCompat.getMainExecutor(this), analizador);
 
         Preview vistaPrevia = new Preview.Builder().build();
@@ -86,18 +91,97 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
         cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, vistaPrevia, analizarImagen, capturaDeImagen);
     }
 
+    public Bitmap reducirTamanoImagen(String rutaImagen, int ancho, int alto) {
+        final BitmapFactory.Options opcion = new BitmapFactory.Options();
+        opcion.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(rutaImagen, opcion);
+        opcion.inSampleSize = calcularFactorEscala(opcion, ancho, alto);
+        opcion.inJustDecodeBounds = false;
+        return BitmapFactory.decodeFile(rutaImagen, opcion);
+    }
+
+    public int calcularFactorEscala(BitmapFactory.Options options, int anchoRequerido, int altoRequerido) {
+        final int altura = options.outHeight;
+        final int ancho = options.outWidth;
+        int tamano = 1;
+
+        if (altura > altoRequerido || ancho > anchoRequerido) {
+            final int mitadAltura = altura / 2;
+            final int mitadAncho = ancho / 2;
+
+            while ((mitadAltura / tamano) >= altoRequerido
+                    && (mitadAncho / tamano) >= anchoRequerido) {
+                tamano *= 2;
+            }
+        }
+
+        return tamano;
+    }
+
+    public Bitmap orientarImagen(String rutaImagen, Bitmap bitmap) {
+        ExifInterface exifInterface = null;
+        try {
+            exifInterface = new ExifInterface(rutaImagen);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        int orientacion = ExifInterface.ORIENTATION_NORMAL;
+
+        if (exifInterface != null) {
+            orientacion = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+        }
+
+        switch (orientacion) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+                bitmap = rotarImagen(bitmap, 90);
+                break;
+
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                bitmap = rotarImagen(bitmap, 180);
+                break;
+
+            case ExifInterface.ORIENTATION_ROTATE_270:
+                bitmap = rotarImagen(bitmap, 270);
+                break;
+
+            default:
+                break;
+        }
+
+        return bitmap;
+    }
+
+    public Bitmap rotarImagen(Bitmap bitmap, float angulo) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angulo);
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+    }
+
+    public byte[] convertirBitmapABytes(Bitmap bitmap) {
+        ByteArrayOutputStream flujoDeSalida = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, flujoDeSalida);
+        return flujoDeSalida.toByteArray();
+    }
+
     public void enviarImagen(Context contextoLocal, Uri fotoUri) {
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient clienteHttp = new OkHttpClient();
 
         try {
             //INFO: Obtener el InputStream del Uri
-            InputStream inputStream = contextoLocal.getContentResolver().openInputStream(fotoUri);
-            assert inputStream != null;
-            byte[] bytes = new byte[inputStream.available()];
-            inputStream.read(bytes);
+            InputStream flujoDeEntrada = contextoLocal.getContentResolver().openInputStream(fotoUri);
+            assert flujoDeEntrada != null;
+            byte[] bytes = new byte[flujoDeEntrada.available()];
+            flujoDeEntrada.read(bytes);
+
+            //INFO: Reducir el tamaño de la imagen para que no sea tan pesada al enviarla al servidor y sea más rápida la subida.
+            Bitmap bitmap = reducirTamanoImagen(fotoUri.getPath(), 800, 600);
+            //INFO: Orientar verticalmente la imagen para que se vea correctamente en el servidor.
+            bitmap = orientarImagen(fotoUri.getPath(), bitmap);
+            bytes = convertirBitmapABytes(bitmap);
 
             //INFO: Crear un RequestBody a partir de los bytes del archivo
-            RequestBody imagen = RequestBody.create(bytes, MediaType.parse("image/png"));
+            RequestBody imagen = RequestBody.create(bytes, MediaType.parse("image/jpeg"));
 
             //INFO: Obtener el nombre del archivo
             String nombreImagen = new File(Objects.requireNonNull(fotoUri.getPath())).getName();
@@ -123,7 +207,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                     .addHeader("Authorization", "Bearer TOKEN_DE_AUTORIZACION")
                     .build();
 
-            client.newCall(solicitud).enqueue(new Callback() {
+            clienteHttp.newCall(solicitud).enqueue(new Callback() {
                 @Override
                 public void onFailure(@NotNull Call call, @NotNull IOException e) {
                     e.printStackTrace();
