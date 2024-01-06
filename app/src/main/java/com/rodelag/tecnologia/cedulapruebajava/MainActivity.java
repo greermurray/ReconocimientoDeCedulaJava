@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
     private ImageCapture capturaDeImagen = null;
     private PreviewView vistaCamara;
     private ImageAnalysis analizarImagen;
+    private Preview vistaPrevia;
 
     private Button btnDetectar;
 
@@ -81,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                 .build();
 
         //INFO: Aquí se puede cambiar la cédula que se desea detectar.
-        AnalizadorDeReconocimientoDeTexto analizador = new AnalizadorDeReconocimientoDeTexto("0-000-000", this);
+        AnalizadorDeReconocimientoDeTexto analizador = new AnalizadorDeReconocimientoDeTexto("8-800-682", this);
         analizarImagen.setAnalyzer(ContextCompat.getMainExecutor(this), analizador);
 
         Preview vistaPrevia = new Preview.Builder().build();
@@ -100,9 +101,9 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
         return BitmapFactory.decodeFile(rutaImagen, opcion);
     }
 
-    public int calcularFactorEscala(BitmapFactory.Options options, int anchoRequerido, int altoRequerido) {
-        final int altura = options.outHeight;
-        final int ancho = options.outWidth;
+    public int calcularFactorEscala(BitmapFactory.Options opciones, int anchoRequerido, int altoRequerido) {
+        final int altura = opciones.outHeight;
+        final int ancho = opciones.outWidth;
         int tamano = 1;
 
         if (altura > altoRequerido || ancho > anchoRequerido) {
@@ -160,7 +161,8 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
 
     public byte[] convertirBitmapABytes(Bitmap bitmap) {
         ByteArrayOutputStream flujoDeSalida = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, flujoDeSalida);
+        //INFO: Bajamos la calidad de la imagen para que no sea tan pesada al enviarla al servidor y sea más rápida la subida. 80 es un buen número.
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, flujoDeSalida);
         return flujoDeSalida.toByteArray();
     }
 
@@ -216,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                 @Override
                 public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
                     if (!response.isSuccessful()) throw new IOException("Error inesperado: " + response);
-                    Log.e("RODELAG", response.body() != null ? response.body().string() : null);
+                    Log.e("PRUEBA-RODELAG", response.body() != null ? response.body().string() : null);
                 }
             });
 
@@ -232,19 +234,33 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
 
     @Override
     public void alDetectarTexto(String texto) {
-        //INFO: Tomar la foto y enviarla al servidor
-        tomarFotoYEnviarAlServidor();
-        runOnUiThread(() -> {
-            Toast.makeText(MainActivity.this, "cédula detectada: " + texto, Toast.LENGTH_LONG).show();
-            //INFO: Habilitar el botón
-            btnDetectar.setEnabled(true);
-        });
+        //INFO: Verificar si la cámara está vinculada antes de intentar tomar una foto
+        ProcessCameraProvider proveedorCamara = null;
+        try {
+            proveedorCamara = ProcessCameraProvider.getInstance(MainActivity.this).get();
+            //INFO: Verificar si la cámara está vinculada antes de intentar tomar una foto
+            if (proveedorCamara.isBound(capturaDeImagen)) {
+                //INFO: Tomar la foto y enviarla al servidor
+                tomarFotoYEnviarAlServidor();
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, "cédula detectada: " + texto, Toast.LENGTH_LONG).show();
+                    //INFO: Habilitar el botón
+                    btnDetectar.setEnabled(true);
+                });
+            }
+            //INFO: Desvincular el caso de uso para que no se siga analizando la imagen
+            proveedorCamara.unbind(analizarImagen);
+            //INFO: Desvincular la vista previa para que la cámara de detenga y quede con el último frame.
+            proveedorCamara.unbind(vistaPrevia);
+        } catch (ExecutionException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void tomarFotoYEnviarAlServidor() {
         //INFO: Crear el archivo donde se guardará la foto
         //INFO: Ponerle como nombre el ID de la cotización.
-        File fotoOutputFile = new File(getExternalFilesDir(null), "ID_COTIZACION.jpg");
+        File fotoOutputFile = new File(getExternalFilesDir(null), "000000.jpg");
         ImageCapture.OutputFileOptions outputFileOptions = new ImageCapture.OutputFileOptions.Builder(fotoOutputFile).build();
 
         //INFO: Tomar la foto
@@ -258,17 +274,17 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                 ProcessCameraProvider proveedorCamara = null;
                 try {
                     proveedorCamara = ProcessCameraProvider.getInstance(MainActivity.this).get();
+
+                    //INFO: Desvincular todos los casos de uso para con la cámara.
+                    proveedorCamara.unbindAll();
                 } catch (ExecutionException | InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-
-                //INFO: Esto aquí hay que mejorarlo...
-                proveedorCamara.unbindAll();
             }
 
             @Override
             public void onError(@NonNull ImageCaptureException exception) {
-                Log.e("RODELAG", "Error al tomar la foto", exception);
+                Log.e("PRUEBA-RODELAG", "Error al tomar la foto", exception);
             }
         });
     }
