@@ -44,8 +44,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
     private PreviewView vistaCamara;
     private ImageAnalysis analizarImagen;
     private Preview vistaPrevia;
-
-    private Button btnDetectar;
+    private Button btnFacturar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,7 +53,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
 
         vistaCamara = findViewById(R.id.camara);
 
-        btnDetectar = findViewById(R.id.btnFacturar);
+        btnFacturar = findViewById(R.id.btnFacturar);
 
         comenzarConLaCamara();
     }
@@ -82,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                 .build();
 
         //INFO: Aquí se puede cambiar la cédula que se desea detectar.
-        AnalizadorDeReconocimientoDeTexto analizador = new AnalizadorDeReconocimientoDeTexto("8-800-682", this);
+        AnalizadorDeReconocimientoDeTexto analizador = new AnalizadorDeReconocimientoDeTexto("0-000-000", this);
         analizarImagen.setAnalyzer(ContextCompat.getMainExecutor(this), analizador);
 
         Preview vistaPrevia = new Preview.Builder().build();
@@ -245,8 +244,10 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                 runOnUiThread(() -> {
                     Toast.makeText(MainActivity.this, "cédula detectada: " + texto, Toast.LENGTH_LONG).show();
                     //INFO: Habilitar el botón
-                    btnDetectar.setEnabled(true);
+                    btnFacturar.setEnabled(true);
                 });
+            } else {
+                Toast.makeText(MainActivity.this, "cédula NO detectada: " + texto, Toast.LENGTH_LONG).show();
             }
             //INFO: Desvincular el caso de uso para que no se siga analizando la imagen
             proveedorCamara.unbind(analizarImagen);
