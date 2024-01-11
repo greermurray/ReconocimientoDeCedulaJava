@@ -246,8 +246,6 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                     //INFO: Habilitar el botón
                     btnFacturar.setEnabled(true);
                 });
-            } else {
-                Toast.makeText(MainActivity.this, "cédula NO detectada: " + texto, Toast.LENGTH_LONG).show();
             }
             //INFO: Desvincular el caso de uso para que no se siga analizando la imagen
             proveedorCamara.unbind(analizarImagen);
