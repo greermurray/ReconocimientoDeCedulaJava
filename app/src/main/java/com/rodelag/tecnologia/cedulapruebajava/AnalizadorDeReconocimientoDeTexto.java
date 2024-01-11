@@ -45,18 +45,18 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
 
     @OptIn(markerClass = ExperimentalGetImage.class)
     @Override
-    public void analyze(@NonNull ImageProxy imageProxy) {
+    public void analyze(@NonNull ImageProxy imagenProxy) {
         executorService.execute(() -> {
-            InputImage image = InputImage.fromMediaImage(Objects.requireNonNull(imageProxy.getImage()), imageProxy.getImageInfo().getRotationDegrees());
+            InputImage imagen = InputImage.fromMediaImage(Objects.requireNonNull(imagenProxy.getImage()), imagenProxy.getImageInfo().getRotationDegrees());
             TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                    .process(image)
+                    .process(imagen)
                     .addOnSuccessListener(result -> {
                         procesamientoDeBloqueDeTexto(result);
-                        imageProxy.close();
+                        imagenProxy.close();
                     })
                     .addOnFailureListener(e -> {
                         e.printStackTrace();
-                        imageProxy.close();
+                        imagenProxy.close();
                     });
         });
     }
