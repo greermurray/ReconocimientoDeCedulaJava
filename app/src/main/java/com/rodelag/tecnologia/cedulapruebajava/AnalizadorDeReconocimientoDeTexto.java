@@ -88,6 +88,9 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
         if (palabrasClaveCedulaNueva.contains(texto)) {
             palabrasClaveDetectadasNueva.add(texto);
         }
+
+        //INFO: Se verifica si el texto es una cedula válida
+        //INFO: Posibles cédulas: 1-111-1111, 1-1111-1111, A-1111-1111, AA-111-1111
         if (texto.matches("([A-Za-z]{2}-\\d{3}-\\d{4})|(\\d-\\d{3}-\\d{3})|(\\d-\\d{4}-\\d{4})|(\\w-\\d{4}-\\d{4})")) {
             Log.e("PRUEBA-RODELAG", "POSIBLE CEDULA: " + texto);
             if (texto.equals(cedulaObjetivo)) {
