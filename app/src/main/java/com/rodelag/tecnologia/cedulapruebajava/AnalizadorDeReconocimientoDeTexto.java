@@ -70,7 +70,7 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
             }
         }
         if (coincidenciaDeDocumento()) {
-            //INFO: Se llama al callback para indicar que se detecto la cedula
+            //INFO: Se llama al callback para indicar que se detectó la cédula
             callback.seEjecutaAlDetectarCedula(cedulaDetectada);
         }
     }
@@ -103,6 +103,7 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
                 cedulaDetectada = texto;
             } else {
                 limpiarPalabrasClaveDetectadas();
+                //INFO: Se llama al callback para indicar que NO se detectó la cédula
                 callback.seEjecutaAlNoDetectarCedula();
             }
         }
@@ -114,7 +115,7 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
     }
 
     private void limpiarPalabrasClaveDetectadas() {
-        //INFO: Si no es la cedula objetivo, se limpian las palabras clave detectadas
+        //INFO: Si no es la cédula objetivo, se limpian las palabras clave detectadas
         palabrasClaveDetectadasNueva.clear();
         palabrasClaveDetectadasVieja.clear();
     }
