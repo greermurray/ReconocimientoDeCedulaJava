@@ -13,11 +13,16 @@ import androidx.core.content.ContextCompat;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.Log;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 import org.jetbrains.annotations.NotNull;
 import android.media.ExifInterface;
@@ -40,6 +45,7 @@ import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity implements AnalizadorDeReconocimientoDeTexto.CallbackDeReconocimientoDeTexto {
 
+    private TextView tvMensaje;
     private ImageCapture capturaDeImagen = null;
     private PreviewView vistaCamara;
     private ImageAnalysis analizarImagen;
@@ -52,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
         setContentView(R.layout.activity_main);
 
         vistaCamara = findViewById(R.id.camara);
-
+        tvMensaje = findViewById(R.id.tvMensaje);
         btnFacturar = findViewById(R.id.btnFacturar);
 
         comenzarConLaCamara();
@@ -231,8 +237,9 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
         super.onPointerCaptureChanged(hasCapture);
     }
 
+    //INFO: Este método se ejecuta solo cuando se detecta la cédula.
     @Override
-    public void alDetectarTexto(String texto) {
+    public void seEjecutaAlDetectarCedula(String texto) {
         //INFO: Verificar si la cámara está vinculada antes de intentar tomar una foto
         ProcessCameraProvider proveedorCamara = null;
         try {
@@ -242,8 +249,9 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                 //INFO: Tomar la foto y enviarla al servidor
                 tomarFotoYEnviarAlServidor();
                 runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "cédula detectada: " + texto, Toast.LENGTH_LONG).show();
-                    //INFO: Habilitar el botón
+                    tvMensaje.setBackgroundColor(Color.GREEN);
+                    tvMensaje.setText("Cédula detectada: " + texto);
+                    tvMensaje.setVisibility(View.VISIBLE);
                     btnFacturar.setEnabled(true);
                 });
             }
@@ -254,6 +262,20 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
         } catch (ExecutionException | InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    //INFO: Este método se ejecuta solo cuando NO se detecta la cédula.
+    @Override
+    public void seEjecutaAlNoDetectarCedula() {
+        runOnUiThread(() -> {
+            tvMensaje.setBackgroundColor(Color.RED);
+            tvMensaje.setText("Cedula inválida");
+            tvMensaje.setVisibility(View.VISIBLE);
+            btnFacturar.setEnabled(false);
+
+            //INFO: Ocultar el mensaje de error después de 3 segundos
+            new Handler().postDelayed(() -> tvMensaje.setVisibility(View.GONE), 3000);
+        });
     }
 
     private void tomarFotoYEnviarAlServidor() {

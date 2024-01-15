@@ -1,5 +1,7 @@
 package com.rodelag.tecnologia.cedulapruebajava;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
 import androidx.camera.core.ExperimentalGetImage;
@@ -68,7 +70,8 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
             }
         }
         if (coincidenciaDeDocumento()) {
-            callback.alDetectarTexto(cedulaDetectada);
+            //INFO: Se llama al callback para indicar que se detecto la cedula
+            callback.seEjecutaAlDetectarCedula(cedulaDetectada);
         }
     }
 
@@ -85,8 +88,19 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
         if (palabrasClaveCedulaNueva.contains(texto)) {
             palabrasClaveDetectadasNueva.add(texto);
         }
-        if (texto.equals(cedulaObjetivo)) {
-            cedulaDetectada = texto;
+        if (texto.matches("([A-Za-z]{2}-\\d{3}-\\d{4})|(\\d-\\d{3}-\\d{3})|(\\d-\\d{4}-\\d{4})|(\\w-\\d{4}-\\d{4})")) {
+            Log.e("PRUEBA-RODELAG", "POSIBLE CEDULA: " + texto);
+            if (texto.equals(cedulaObjetivo)) {
+                Log.e("PRUEBA-RODELAG", "CEDULA CORRECTA: " + texto);
+                cedulaDetectada = texto;
+            } else {
+                //INFO: Si no es la cedula objetivo, se limpian las palabras clave detectadas
+                palabrasClaveDetectadasNueva.clear();
+                palabrasClaveDetectadasVieja.clear();
+
+                //INFO: Se llama al callback para indicar que no se detecto la cedula
+                callback.seEjecutaAlNoDetectarCedula();
+            }
         }
     }
 
@@ -95,6 +109,7 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
     }
 
     public interface CallbackDeReconocimientoDeTexto {
-        void alDetectarTexto(String cedula);
+        void seEjecutaAlDetectarCedula(String cedula);
+        void seEjecutaAlNoDetectarCedula();
     }
 }
