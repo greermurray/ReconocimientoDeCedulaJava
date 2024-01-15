@@ -82,29 +82,41 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
     }
 
     private void verificarPalabrasClave(String texto) {
+        agregarSiEsPalabraClave(texto);
+        verificarCedula(texto);
+    }
+
+    private void agregarSiEsPalabraClave(String texto) {
         if (palabrasClaveCedulaVieja.contains(texto)) {
             palabrasClaveDetectadasVieja.add(texto);
         }
         if (palabrasClaveCedulaNueva.contains(texto)) {
             palabrasClaveDetectadasNueva.add(texto);
         }
+    }
 
-        //INFO: Se verifica si el texto es una cedula válida
-        //INFO: Posibles cédulas: 1-111-1111, 1-1111-1111, A-1111-1111, AA-111-1111
-        if (texto.matches("([A-Za-z]{2}-\\d{3}-\\d{4})|(\\d-\\d{3}-\\d{3})|(\\d-\\d{4}-\\d{4})|(\\w-\\d{4}-\\d{4})")) {
+    private void verificarCedula(String texto) {
+        if (esCedulaValida(texto)) {
             Log.e("PRUEBA-RODELAG", "POSIBLE CEDULA: " + texto);
             if (texto.equals(cedulaObjetivo)) {
                 Log.e("PRUEBA-RODELAG", "CEDULA CORRECTA: " + texto);
                 cedulaDetectada = texto;
             } else {
-                //INFO: Si no es la cedula objetivo, se limpian las palabras clave detectadas
-                palabrasClaveDetectadasNueva.clear();
-                palabrasClaveDetectadasVieja.clear();
-
-                //INFO: Se llama al callback para indicar que no se detecto la cedula
+                limpiarPalabrasClaveDetectadas();
                 callback.seEjecutaAlNoDetectarCedula();
             }
         }
+    }
+
+    private boolean esCedulaValida(String texto) {
+        //INFO: Posibles cédulas: 1-111-1111, 1-1111-1111, A-1111-1111, AA-111-1111
+        return texto.matches("([A-Za-z]{2}-\\d{3}-\\d{4})|(\\d-\\d{3}-\\d{3})|(\\d-\\d{4}-\\d{4})|(\\w-\\d{4}-\\d{4})");
+    }
+
+    private void limpiarPalabrasClaveDetectadas() {
+        //INFO: Si no es la cedula objetivo, se limpian las palabras clave detectadas
+        palabrasClaveDetectadasNueva.clear();
+        palabrasClaveDetectadasVieja.clear();
     }
 
     private boolean coincidenciaDeDocumento() {
