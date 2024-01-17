@@ -110,8 +110,9 @@ public class AnalizadorDeReconocimientoDeTexto implements ImageAnalysis.Analyzer
     }
 
     private boolean esCedulaValida(String texto) {
-        //INFO: Posibles cédulas: 1-111-1111, 1-1111-1111, A-1111-1111, AA-111-1111
-        return texto.matches("([A-Za-z]{2}-\\d{3}-\\d{4})|(\\d-\\d{3}-\\d{3})|(\\d-\\d{4}-\\d{4})|(\\w-\\d{4}-\\d{4})");
+        //INFO: Expresión regular para validar que la cédula sea válida. Los patrones acpetados son los siguientes:
+        // las letras N, E ó PE ó de uno a dos dígitos, un guión, de uno a seis dígitos, un guión y de uno a seis dígitos.
+        return texto.matches("((N|E|PE)|\\d{1,2})-\\d{1,6}-\\d{1,6}");
     }
 
     private void limpiarPalabrasClaveDetectadas() {

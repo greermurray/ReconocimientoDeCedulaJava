@@ -28,6 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import android.media.ExifInterface;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
@@ -51,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
     private ImageAnalysis analizarImagen;
     private Preview vistaPrevia;
     private Button btnFacturar;
+    FirmaVista firmaVista;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,8 +62,34 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
         vistaCamara = findViewById(R.id.camara);
         tvMensaje = findViewById(R.id.tvMensaje);
         btnFacturar = findViewById(R.id.btnFacturar);
+        firmaVista = findViewById(R.id.signature_view);
 
         comenzarConLaCamara();
+
+        btnFacturar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Bitmap firmaBitmap = firmaVista.firmaBitmap();
+                //INFO: Guardar el Bitmap en un archivo
+                //INFO: directorio de caché
+                File outputDir = getApplicationContext().getCacheDir();
+
+                //INFO: Cambiar el nombre del archivo a "IDCOTIZACION_firma.png"
+                File outputFile = new File(outputDir, "000000_firma.png");
+
+                try (FileOutputStream out = new FileOutputStream(outputFile)) {
+                    firmaBitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                //INFO: Convertir el archivo en una URI
+                Uri firmaUri = Uri.fromFile(outputFile);
+
+                //INFO: Enviar la imagen al servidor.
+                enviarImagen(MainActivity.this, firmaUri);
+            }
+        });
     }
 
     private void comenzarConLaCamara() {

@@ -22,6 +22,14 @@
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginBottom="16dp" />
 
+    <com.rodelag.tecnologia.cedulapruebajava.FirmaVista
+        android:id="@+id/signature_view"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        app:layout_constraintBottom_toTopOf="@id/btnFacturar"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <TextView
         android:id="@+id/tvMensaje"
         android:layout_width="match_parent"
@@ -30,7 +38,7 @@
         android:visibility="gone"
         android:textColor="@android:color/white"
         android:padding="16dp"
-        app:layout_constraintBottom_toTopOf="@id/btnFacturar"
+        app:layout_constraintBottom_toTopOf="@id/signature_view"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
