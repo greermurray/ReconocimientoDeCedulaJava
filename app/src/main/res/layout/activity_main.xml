@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -17,18 +16,26 @@
         android:layout_height="wrap_content"
         android:text="BOTÓN DE FACTURAR"
         android:enabled="false"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
         android:layout_marginBottom="16dp" />
 
     <com.rodelag.tecnologia.cedulapruebajava.FirmaVista
         android:id="@+id/signature_view"
-        android:layout_width="match_parent"
+        android:layout_width="350dp"
         android:layout_height="200dp"
-        app:layout_constraintBottom_toTopOf="@id/btnFacturar"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:layout_above="@id/btnFacturar"
+        android:layout_centerHorizontal="true"
+        android:background="@drawable/borde" />
+
+    <Button
+        android:id="@+id/btnBorrar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="LIMPIAR FIRMA"
+        android:layout_alignBottom="@id/signature_view"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="10dp" />
 
     <TextView
         android:id="@+id/tvMensaje"
@@ -38,8 +45,7 @@
         android:visibility="gone"
         android:textColor="@android:color/white"
         android:padding="16dp"
-        app:layout_constraintBottom_toTopOf="@id/signature_view"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:layout_above="@id/signature_view"
+        android:layout_centerHorizontal="true" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</RelativeLayout>

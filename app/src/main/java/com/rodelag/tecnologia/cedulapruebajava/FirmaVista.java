@@ -14,6 +14,7 @@ import android.view.View;
 public class FirmaVista extends View {
 
     private Paint paint = new Paint();
+    private Paint borderPaint = new Paint();
     private Path path = new Path();
     private Rect drawingArea;
 
@@ -25,15 +26,13 @@ public class FirmaVista extends View {
         paint.setColor(0xFF000000);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeJoin(Paint.Join.ROUND);
-
-        this.setBackgroundColor(Color.WHITE);
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         //INFO: Área de firma
-        int rectangleHeight = 500;
+        int rectangleHeight = 600;
         drawingArea = new Rect(0, h - rectangleHeight, w, h);
     }
 
@@ -71,7 +70,17 @@ public class FirmaVista extends View {
     public Bitmap firmaBitmap() {
         Bitmap signatureBitmap = Bitmap.createBitmap(this.getWidth(), this.getHeight(), Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(signatureBitmap);
-        this.draw(canvas);
+
+        //INFO: Se agrega fondo blanco
+        Paint backgroundPaint = new Paint();
+
+        //INFO: Color de fondo
+        backgroundPaint.setColor(Color.WHITE);
+        canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), backgroundPaint);
+
+        //INFO: Se Dibuja la firma en el fondo blanco
+        canvas.drawPath(path, paint);
+
         return signatureBitmap;
     }
 

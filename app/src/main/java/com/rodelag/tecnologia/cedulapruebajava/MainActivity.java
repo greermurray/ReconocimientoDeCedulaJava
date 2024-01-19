@@ -52,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
     private ImageAnalysis analizarImagen;
     private Preview vistaPrevia;
     private Button btnFacturar;
+    private Button btnLimpiarFirma;
     FirmaVista firmaVista;
 
     @Override
@@ -63,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
         tvMensaje = findViewById(R.id.tvMensaje);
         btnFacturar = findViewById(R.id.btnFacturar);
         firmaVista = findViewById(R.id.signature_view);
+        btnLimpiarFirma = findViewById(R.id.btnBorrar);
 
         comenzarConLaCamara();
 
@@ -75,10 +77,11 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
                 File outputDir = getApplicationContext().getCacheDir();
 
                 //INFO: Cambiar el nombre del archivo a "IDCOTIZACION_firma.png"
-                File outputFile = new File(outputDir, "000000_firma.png");
+                File outputFile = new File(outputDir, "000000_firma.jpg");
 
                 try (FileOutputStream out = new FileOutputStream(outputFile)) {
-                    firmaBitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                    //INFO: Formato JPEG
+                    firmaBitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -88,6 +91,13 @@ public class MainActivity extends AppCompatActivity implements AnalizadorDeRecon
 
                 //INFO: Enviar la imagen al servidor.
                 enviarImagen(MainActivity.this, firmaUri);
+            }
+        });
+
+        btnLimpiarFirma.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                firmaVista.borrarFirma();
             }
         });
     }
